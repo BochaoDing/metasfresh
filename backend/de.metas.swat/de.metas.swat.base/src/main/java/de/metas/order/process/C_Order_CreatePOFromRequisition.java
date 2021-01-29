@@ -26,7 +26,8 @@ import de.metas.document.DocTypeId;
 import de.metas.document.engine.DocStatus;
 import de.metas.order.IOrderBL;
 import de.metas.order.OrderId;
-import de.metas.order.createFrom.CreateSalesOrderFromProposalCommand;
+import de.metas.order.createFrom.CreatePurchaseOrderFromRequisitionCommand;
+import de.metas.process.IProcessPrecondition;
 import de.metas.process.Param;
 import de.metas.process.ProcessPreconditionsResolution;
 import de.metas.util.Services;
@@ -35,7 +36,7 @@ import org.compiere.model.I_C_Order;
 
 import java.sql.Timestamp;
 
-public final class C_Order_CreateFromProposal extends C_Order_CreationProcess
+public final class C_Order_CreatePOFromRequisition extends C_Order_CreationProcess implements IProcessPrecondition
 {
 	private final IOrderBL orderBL = Services.get(IOrderBL.class);
 
@@ -51,6 +52,7 @@ public final class C_Order_CreateFromProposal extends C_Order_CreationProcess
 	@Param(parameterName = "CompleteIt")
 	private boolean completeIt;
 
+	@Override
 	public ProcessPreconditionsResolution checkPreconditionsApplicable(final @NonNull I_C_Order order)
 	{
 		final DocStatus quotationDocStatus = DocStatus.ofNullableCodeOrUnknown(order.getDocStatus());
@@ -59,9 +61,9 @@ public final class C_Order_CreateFromProposal extends C_Order_CreationProcess
 			return ProcessPreconditionsResolution.rejectWithInternalReason("not a completed quotation");
 		}
 
-		if (!orderBL.isSalesProposalOrQuotation(order))
+		if (!orderBL.isRequisition(order))
 		{
-			return ProcessPreconditionsResolution.rejectWithInternalReason("is not sales proposal or quotation");
+			return ProcessPreconditionsResolution.rejectWithInternalReason("is not purchase requisition");
 		}
 
 		return ProcessPreconditionsResolution.accept();
@@ -70,8 +72,8 @@ public final class C_Order_CreateFromProposal extends C_Order_CreationProcess
 	@Override
 	protected String doIt()
 	{
-		final I_C_Order newSalesOrder = CreateSalesOrderFromProposalCommand.builder()
-				.fromProposalId(OrderId.ofRepoId(getRecord_ID()))
+		final I_C_Order newSalesOrder = CreatePurchaseOrderFromRequisitionCommand.builder()
+				.fromRequisitionId(OrderId.ofRepoId(getRecord_ID()))
 				.newOrderDocTypeId(newOrderDocTypeId)
 				.newOrderDateOrdered(newOrderDateOrdered)
 				.poReference(poReference)
